@@ -6,7 +6,7 @@
 
 VERSION="2.1.8"
 N_PREFIX=${N_PREFIX-/usr/local}
-BASE_VERSIONS_DIR=$N_PREFIX/n/versions
+BASE_VERSIONS_DIR=$N_PREFIX/n-test/versions
 
 #
 # Log <type> <msg>
@@ -261,7 +261,7 @@ check_current_version() {
     current=${current#v}
     for bin in ${BINS[@]}; do
       if diff &> /dev/null \
-        $BASE_VERSIONS_DIR/$bin/$current/bin-node/node \
+        $BASE_VERSIONS_DIR/$bin/$current/bin/node \
         $(which node) ; then
         active=$bin/$current
       fi
@@ -486,10 +486,9 @@ activate() {
     local dir=$BASE_VERSIONS_DIR/$version
     for subdir in bin-node include share; do
       target_subdir=${subdir%%-*}
-      find "$dir/$subdir" -mindepth 1 -maxdepth 1 \
-          -exec cp -fR "{}" "$N_PREFIX/$target_subdir" \;
+      find "$dir/$subdir" -mindepth 1 -maxdepth 1 -exec cp -fR "{}" "$N_PREFIX/$target_subdir" \;
     done
-    disable_pax_mprotect "$N_PREFIX/bin-node/node"
+    disable_pax_mprotect "$N_PREFIX/bin/node"
 
     ln -fs "$dir/lib/node_modules" "$N_PREFIX/lib/node_modules"
     echo "prefix = $dir" > "$N_PREFIX/etc/npmrc"
@@ -646,7 +645,7 @@ display_bin_path_for_version() {
     version=$(display_latest_lts_version)
   fi
 
-  local bin=${VERSIONS_DIR[$DEFAULT]}/$version/bin-node/node
+  local bin=${VERSIONS_DIR[$DEFAULT]}/$version/bin/node
   if test -f $bin; then
     printf "$bin \n"
   else
@@ -674,7 +673,7 @@ execute_with_version() {
     version=$(display_latest_lts_version)
   fi
 
-  local bin=${VERSIONS_DIR[$DEFAULT]}/$version/bin-node/node
+  local bin=${VERSIONS_DIR[$DEFAULT]}/$version/bin/node
 
   shift # remove version
 
