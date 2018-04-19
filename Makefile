@@ -18,10 +18,12 @@ unuse:
 	rm ~/.n-use.sh
 	sed -i -E '/n(-| )use/d' ~/.bashrc
 
+# $(shell pwd) only works if make is invoked from this Makefile directory,
+# but if it is not the target bin/n-test is not found anyway.
 test: bin/n-test
 	mkdir -p $(PREFIX)/$(dir $<)
 	mkdir -p $(PREFIX)/etc
-	ln -s $(PWD)/$< $(PREFIX)/$<
+	ln -fs $(shell pwd)/$< $(PREFIX)/$<
 
 untest:
 	rm -rf $(PREFIX)/n-test
