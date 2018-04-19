@@ -12,6 +12,10 @@
 # Need aliasing for npm global packages
 shopt -s expand_aliases
 
+# This variable is global for DRY purposes
+# N executable
+N_BIN=$(which n)
+
 # This function makes the provided node version the default for this session.
 #
 # Arguments:
@@ -20,8 +24,8 @@ shopt -s expand_aliases
 n-activate() {
     local VERSION="$1"
 
-    # N installation path and installation path for the node version
-    local N_PREFIX=$(which n | xargs dirname | xargs -i readlink -f '{}/..')
+    # Installation paths for n and the node version
+    local N_PREFIX=$(dirname "$N_BIN" | xargs -i readlink -f '{}/..')
     local N_VERSION_PATH=$(find "$N_PREFIX/n-test" -path "*$VERSION")
 
     # Node version not installed. Would need root privileges to install it.
@@ -78,7 +82,6 @@ n-use() {
     # Resolving named version with n
     case "$VERSION" in
         latest|lts|stable)
-            N_BIN=$(which n)
             VERSION=$("$N_BIN" --"$VERSION")
             ;;
     esac
@@ -104,6 +107,6 @@ n() {
 
     # Delegating anything else to n
     else
-        $(which n) "$@"
+        "$N_BIN" "$@"
     fi
 }
