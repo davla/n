@@ -6,7 +6,7 @@
 
 VERSION="2.1.8"
 N_PREFIX=${N_PREFIX-/usr/local}
-BASE_VERSIONS_DIR=$N_PREFIX/n-test/versions
+BASE_VERSIONS_DIR=$N_PREFIX/n/versions
 
 #
 # Log <type> <msg>
@@ -185,11 +185,13 @@ display_help() {
 
   Options:
 
-    -V, --version   Output current version of n
-    -h, --help      Display help information
-    -q, --quiet     Disable curl output (if available)
-    -d, --download  Download only
-    -a, --arch      Override system architecture
+    -V, --version       Output current version of n
+    -h, --help          Display help information
+    -q, --quiet         Disable curl output (if available)
+    -d, --download      Download only
+    -a, --arch          Override system architecture
+    -i, --interactive   Displays installed versions interactively
+    -p, --platform      Displays installed versions with the platform
 
   Aliases:
 
@@ -261,7 +263,7 @@ check_current_version() {
     current=${current#v}
     for bin in ${BINS[@]}; do
       if diff &> /dev/null \
-        $BASE_VERSIONS_DIR/$bin/$current/bin/node \
+        $BASE_VERSIONS_DIR/$bin/$current/bin-node/node \
         $(which node) ; then
         active=$bin/$current
       fi
@@ -318,8 +320,23 @@ list_versions_installed() {
 #
 # Display current node --version and others installed.
 #
+display_versions_platform() {
+    check_current_version
+    versions_paths | sed "s|$active|$active *|"
+}
 
+#
+# Display current node --version and others installed, removing platform name..
+#
 display_versions() {
+    display_versions_platform | awk -F '/' '{print $2}'
+}
+
+#
+# Display current node --version and others installed interactively.
+#
+
+display_versions_interactive() {
   enter_fullscreen
   check_current_version
   clear
@@ -486,9 +503,10 @@ activate() {
     local dir=$BASE_VERSIONS_DIR/$version
     for subdir in bin-node include share; do
       target_subdir=${subdir%%-*}
-      find "$dir/$subdir" -mindepth 1 -maxdepth 1 -exec cp -fR "{}" "$N_PREFIX/$target_subdir" \;
+      find "$dir/$subdir" -mindepth 1 -maxdepth 1 \
+          -exec cp -fR "{}" "$N_PREFIX/$target_subdir" \;
     done
-    disable_pax_mprotect "$N_PREFIX/bin/node"
+    disable_pax_mprotect "$N_PREFIX/bin-node/node"
 
     ln -fs "$dir/lib/node_modules" "$N_PREFIX/lib/node_modules"
     echo "prefix = $dir" > "$N_PREFIX/etc/npmrc"
@@ -645,7 +663,7 @@ display_bin_path_for_version() {
     version=$(display_latest_lts_version)
   fi
 
-  local bin=${VERSIONS_DIR[$DEFAULT]}/$version/bin/node
+  local bin=${VERSIONS_DIR[$DEFAULT]}/$version/bin-node/node
   if test -f $bin; then
     printf "$bin \n"
   else
@@ -673,7 +691,7 @@ execute_with_version() {
     version=$(display_latest_lts_version)
   fi
 
-  local bin=${VERSIONS_DIR[$DEFAULT]}/$version/bin/node
+  local bin=${VERSIONS_DIR[$DEFAULT]}/$version/bin-node/node
 
   shift # remove version
 
@@ -772,6 +790,8 @@ else
       -h|--help|help) display_help; exit ;;
       -q|--quiet) set_quiet ;;
       -d|--download) ACTIVATE=false ;;
+      -i|--interactive) display_versions_interactive; exit ;;
+      -p|--platform) display_versions_platform; exit ;;
       --latest) display_latest_version; exit ;;
       --stable) display_latest_stable_version; exit ;;
       --lts) display_latest_lts_version; exit ;;
