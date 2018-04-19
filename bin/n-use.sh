@@ -26,7 +26,7 @@ n-activate() {
 
     # Installation paths for n and the node version
     local N_PREFIX=$(dirname "$N_BIN" | xargs -i readlink -f '{}/..')
-    local N_VERSION_PATH=$(find "$N_PREFIX/n-test" -path "*$VERSION")
+    local N_VERSION_PATH=$(find "$N_PREFIX/n" -path "*$VERSION")
 
     # Node version not installed. Would need root privileges to install it.
     if [[ -z "$N_VERSION_PATH" ]]; then
