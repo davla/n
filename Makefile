@@ -12,7 +12,7 @@ uninstall:
 
 use: bin/n-use.sh
 	cp $< ~/.n-use.sh
-	echo -e '# n use command\n\nsource ~/.n-use.sh' >> ~/.bashrc
+	echo -e '\n# n use command\n\nsource ~/.n-use.sh' >> ~/.bashrc
 
 unuse:
 	rm ~/.n-use.sh
