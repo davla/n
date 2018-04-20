@@ -13,7 +13,7 @@ BASE_VERSIONS_DIR=$N_PREFIX/n/versions
 #
 
 log() {
-  printf "  \033[36m%10s\033[0m : \e[2m%s\e[22m\033[0m\n" $1 $2
+  printf "  \033[36m%10s\033[0m : \e[2m%s\e[22m\033[0m\n" "$1" "$2"
 }
 
 #
@@ -510,8 +510,10 @@ activate() {
 
     ln -fs "$dir/lib/node_modules" "$N_PREFIX/lib/node_modules"
     echo "prefix = $dir" > "$N_PREFIX/etc/npmrc"
+
+    log 'activated' "${version##*/}"
   else
-    echo "$version is already active"
+    log 'already active' "${version##*/}"
   fi
 }
 
