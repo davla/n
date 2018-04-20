@@ -164,7 +164,7 @@ display_help() {
     n stable                       Install or activate the latest stable node release
     n lts                          Install or activate the latest LTS node release
     n <version>                    Install node <version>
-    n use <version> [args ...]     Execute node <version> with [args ...]
+    n exec <version> [args ...]     Execute node <version> with [args ...]
     n bin <version>                Output bin path for <version>
     n rm <version ...>             Remove the given version(s)
     n prune                        Remove all versions except the current version
@@ -177,7 +177,7 @@ display_help() {
     n io latest                    Install or activate the latest iojs release
     n io -a x86 latest             As above but force 32 bit architecture
     n io <version>                 Install iojs <version>
-    n io use <version> [args ...]  Execute iojs <version> with [args ...]
+    n io exec <version> [args ...]  Execute iojs <version> with [args ...]
     n io bin <version>             Output bin path for <version>
     n io rm <version ...>          Remove the given version(s)
     n io --latest                  Output the latest iojs version available
@@ -196,7 +196,7 @@ display_help() {
   Aliases:
 
     which   bin
-    use     as
+    exec     as
     list    ls
     -       rm
 
@@ -801,7 +801,7 @@ else
       project) DEFAULT=2 ;;
       -a|--arch) shift; set_arch $1;; # set arch and continue
       bin|which) display_bin_path_for_version $2; exit ;;
-      as|use) shift; execute_with_version $@; exit ;;
+      as|exec) shift; execute_with_version $@; exit ;;
       rm|-) shift; remove_versions $@; exit ;;
       prune) prune_versions; exit ;;
       latest) install_latest; exit ;;
