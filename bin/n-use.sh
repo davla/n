@@ -51,6 +51,8 @@ n-activate() {
         # package name
         alias "$ALIAS_NAME"="$JS_BIN"
     done
+
+    echo "Node version $VERSION activated"
 }
 
 # This function mainly deals with version number formatting before calling
