@@ -10,6 +10,38 @@ Node.js version management: no subshells, no profile setup, no convoluted API, j
 
 ## **Want to install Node nightly releases? Try [this](https://github.com/tj/n/issues/376#issuecomment-250876666)!**
 
+## Differences with the original
+
+This fork of `n` mainly handles global packages installation, as well as
+providing a session-based shell wrapper available to unprivileged users.
+
+### Global packages
+
+Global packages are installed in the `node_modules` directory of every version.
+A couple of symbolic links make this directory available globally. In
+particular one points from the system-wide `node_modules` to the one inside the
+version directory; the other one points from the version-specific bin directory
+to the system-wide one, so that `npm` creates globally accessible symbolic
+links. So far, it has one *issue*: it leaves potentially dangling symbolic
+links when switching versions, if the newly activated version doesn't have the
+old one's global packages installed.
+
+### Shell wrapper
+
+Node versions are installed system-wide, and therefore are not supposed to be
+installed by unprivileged users. Furthermore, they are not even allowed to
+change the currently active node version. To address this problem, a wrapper
+for `bash` is provided, in the form of `n use <version>`, that makes the
+standard node binaries and globally installed packages point to the specified
+version of node, by altering the `PATH` variable and creating some aliases.
+Support for `.nvmrc` files is provided, but, unlike `nvm` the effects of
+`n use` vanish once the current terminal session is closed.
+
+### Misc
+
+- Non-interactive version listing
+    * With and without `node`/`io` platform specified
+
 ![](http://nimit.io/images/n/n.gif)
 
 (Unfortunately `n` is not supported on Windows yet. If you're able to make it work, send in a pull request!)
@@ -47,7 +79,7 @@ Simply execute `n <version>` to install a version of `node`. If `<version>` has 
     $ n 0.9.6
 
 Execute `n` on its own to view your currently installed versions. Use the up and down arrow keys to navigate and press enter or the right arrow key to select. Use ^C (control + C) to exit the selection screen.
-If you like vim key bindings during the selection of node versions, you can use `j` and `k` to navigate up or down without using arrows. 
+If you like vim key bindings during the selection of node versions, you can use `j` and `k` to navigate up or down without using arrows.
 
     $ n
 
@@ -80,7 +112,7 @@ Alternatively, you can use `-` in lieu of `rm`:
 Removing all versions except the current version:
 
 ```bash
-$ n prune 
+$ n prune
 ```
 
 ### Binary Usage
