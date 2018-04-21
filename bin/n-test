@@ -505,34 +505,39 @@ link_global_packages() {
         local version=$1
         local global_packages=$BASE_VERSIONS_DIR/$version/lib/node_modules
 
-        # Creating a symbolic link for each global package.
-        # ls prints just the root directory of the package.
+        # Creating a symbolic link for each global package. The links point
+        # directly to the binaries in `node_modules` of the active version,
+        # saving one level of indirection. However, the link
+        # `<node version>/bin` --> `<prefix>/bin` is still necessary for
+        # freshly installed global packages.
+        # 
+        # find prints the root directory absolute path of every global package
         # jq prints a list of '<binary name> <binary path>' for every binary
-        #       in the package, where <binary name> is the file name of the
-        #       symbolic and <binary path> the link target, both as npm would
-        #       create during normal installation.
-        # The while loop creates such links
-        ls -1 $global_packages \
+        #       in the package. <binary name> is the file name of the symbolic
+        #       link as npm would create it during normal installation.
+        #       <binary path> is the absolute path of the js binary in the
+        #       installation directory of the active version of node
+        # The while loop creates the links from <binary name> to <binary path>
+        find $global_packages -maxdepth 1 -mindepth 1 -type d \
             | xargs -i jq -r '
                 .bin |
                 to_entries |
                 map(.key + " " + (
                     .value
-                    | sub("^\\."; "../lib/node_modules/{}")
+                    | sub("^\\."; "{}")
                 )) |
-                .[]' "$global_packages/{}/package.json" \
+                .[]' "{}/package.json" \
             | while read js_name js_bin; do
                 ln -fs $js_bin $N_PREFIX/bin/$js_name;
               done
 
-        # As per find manpage, `-type l` reports only broken links with -L.
-        #       A list of '<link_path> <link_target>' is printed by find.
-        # grep and awk respectively filter links to 'node_modules' and keep
-        #       the link path only.
-        # rm removes the broken link to global node packages.
-        find -L $N_PREFIX/bin -maxdepth 1 -mindepth 1 -type l \
-                -printf '%p %l\n' \
-            | grep 'node_modules' | awk '{print $1}' \
+        # find prints a line consisting of '<link_path> <link_target>' for
+        #       every symbolic link in the global binaries path.
+        # grep and awk respectively filter links to 'node_modules' of
+        #       non-active versions and keep the link path only.
+        # rm removes the filtered links.
+        find $N_PREFIX/bin -maxdepth 1 -mindepth 1 -type l -printf '%p %l\n' \
+            | grep 'node_modules' | grep -v $version | awk '{print $1}' \
             | xargs rm 2> /dev/null
     fi
 }
