@@ -493,6 +493,51 @@ disable_pax_mprotect() {
 }
 
 #
+# Links global binaries to globally installed packages
+#
+
+link_global_packages() {
+
+    # jq is necessary to parse package.json files. However, not performing
+    # this operation just leaves a bunch of dangling symbolic link, while
+    # the globally installed package for the active version will still work
+    if which jq &> /dev/null; then
+        local version=$1
+        local global_packages=$BASE_VERSIONS_DIR/$version/lib/node_modules
+
+        # Creating a symbolic link for each global package.
+        # ls prints just the root directory of the package.
+        # jq prints a list of '<binary name> <binary path>' for every binary
+        #       in the package, where <binary name> is the file name of the
+        #       symbolic and <binary path> the link target, both as npm would
+        #       create during normal installation.
+        # The while loop creates such links
+        ls -1 $global_packages \
+            | xargs -i jq -r '
+                .bin |
+                to_entries |
+                map(.key + " " + (
+                    .value
+                    | sub("^\\."; "../lib/node_modules/{}")
+                )) |
+                .[]' "$global_packages/{}/package.json" \
+            | while read js_name js_bin; do
+                ln -fs $js_bin $N_PREFIX/bin/$js_name;
+              done
+
+        # As per find manpage, `-type l` reports only broken links with -L.
+        #       A list of '<link_path> <link_target>' is printed by find.
+        # grep and awk respectively filter links to 'node_modules' and keep
+        #       the link path only.
+        # rm removes the broken link to global node packages.
+        find -L $N_PREFIX/bin -maxdepth 1 -mindepth 1 -type l \
+                -printf '%p %l\n' \
+            | grep 'node_modules' | awk '{print $1}' \
+            | xargs rm 2> /dev/null
+    fi
+}
+
+#
 # Activate <version>
 #
 
@@ -508,12 +553,13 @@ activate() {
     done
     disable_pax_mprotect "$N_PREFIX/bin-node/node"
 
-    ln -fs "$dir/lib/node_modules" "$N_PREFIX/lib/node_modules"
+    ln -fsn "$dir/lib/node_modules" "$N_PREFIX/lib/node_modules"
+    link_global_packages $version
     echo "prefix = $dir" > "$N_PREFIX/etc/npmrc"
 
-    log 'activated' "${version##*/}"
+    log 'activated' "v${version##*/}"
   else
-    log 'already active' "${version##*/}"
+    log 'already active' "v${version##*/}"
   fi
 }
 

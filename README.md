@@ -20,11 +20,25 @@ providing a session-based shell wrapper available to unprivileged users.
 Global packages are installed in the `node_modules` directory of every version.
 A couple of symbolic links make this directory available globally. In
 particular one points from the system-wide `node_modules` to the one inside the
-version directory; the other one points from the version-specific bin directory
-to the system-wide one, so that `npm` creates globally accessible symbolic
-links. So far, it has one *issue*: it leaves potentially dangling symbolic
-links when switching versions, if the newly activated version doesn't have the
-old one's global packages installed.
+version directory; the other one points from the version-specific `bin`
+directory to the system-wide one, so that `npm` creates globally accessible
+symbolic links.
+
+#### Global symbolic links
+
+Symbolic links for binaries in global packages can be potentially dangling
+when switching versions. This happens if the newly activated version doesn't
+have the old one's global packages installed. If the dangling links are never
+deleted, any active version will have its global packages linked, plus the
+packages from inactive versions. This means that installed packages will work
+just fine, but the situation isn't exactly neat and clean.
+A possible fix to this problem is to parse the `package.json` file of every
+global package to get its binaries and link them, and then proceed to delete
+dangling symbolic links. This is not a trivial task with plain bash, and it's
+not a feature that breaks the functionalities of `n` itself. Therefore, the
+parsing is handled with the [`jq`](https://stedolan.github.io/jq/) package,
+and `n` will try to clean up the dangling symbolic links only if it is
+available.
 
 ### Shell wrapper
 
