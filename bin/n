@@ -508,7 +508,7 @@ activate() {
     done
     disable_pax_mprotect "$N_PREFIX/bin-node/node"
 
-    ln -fs "$dir/lib/node_modules" "$N_PREFIX/lib/node_modules"
+    ln -fsn "$dir/lib/node_modules" "$N_PREFIX/lib/node_modules"
     echo "prefix = $dir" > "$N_PREFIX/etc/npmrc"
 
     log 'activated' "${version##*/}"
