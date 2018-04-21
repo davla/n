@@ -47,14 +47,20 @@ installed by unprivileged users. Furthermore, they are not even allowed to
 change the currently active node version. To address this problem, a wrapper
 for `bash` is provided, in the form of `n use <version>`, that makes the
 standard node binaries and globally installed packages point to the specified
-version of node, by altering the `PATH` variable and creating some aliases.
-Support for `.nvmrc` files is provided, but, unlike `nvm` the effects of
-`n use` vanish once the current terminal session is closed.
+version of node, by altering the `PATH` variable and creating some aliases for
+global packages. As for the system-wide installation, if `jq` is available
+on the system, then the aliases expansion are parsed from `package.json` files
+in the activated version's `node_modules` directory; otherwise all of the
+global binaries that link to the global `node_modules` are aliased, and the
+dangling symbolic links become not-found executables. Support for `.nvmrc`
+files is provided, but, unlike `nvm` the effects of `n use` vanish once the
+current terminal session is closed.
 
 ### Misc
 
 - Non-interactive version listing
     * With and without `node`/`io` platform specified
+- Forced activation
 
 ![](http://nimit.io/images/n/n.gif)
 

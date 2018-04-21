@@ -38,19 +38,39 @@ n-activate() {
     PATH="$N_VERSION_PATH/bin-node:$PATH"
 
     # Aliasing global installed packages.
+
+    # If jq is available, the package.json of global packages of the activated
+    # version are scanned for package binaries, that are then aliased
+    if which jq &> /dev/null; then
+        while read JS_NAME JS_BIN; do
+            alias "$JS_NAME"="$JS_BIN"
+        done < <(find "$N_VERSION_PATH/lib/node_modules" -maxdepth 1 \
+                        -mindepth 1 -type d \
+                | xargs -i jq -r '
+                    .bin |
+                    to_entries |
+                    map(.key + " " + (
+                        .value
+                        | sub("^\\."; "{}")
+                    )) |
+                    .[]' "{}/package.json")
+
     # For every binary that links to a node_modules path, the parent of
-    # lib/node_modules is replaced by the installation path of the node version
-    for JS_BIN in $(readlink "$N_PREFIX/bin/"* | grep 'node_modules' \
-            | sed "s|\\.\\.|$N_VERSION_PATH|g"); do
+    # lib/node_modules is replaced by the installation path of the node
+    # version
+    else
+        for JS_BIN in $(readlink "$N_PREFIX/bin/"* | grep 'node_modules' \
+                | sed "s|\\.\\.|$N_VERSION_PATH|g"); do
 
-        # The package name is used as the alias name
-        ALIAS_NAME=$(grep -oP 'node_modules/.+/' <<<"$JS_BIN" \
-            | awk -F '/' '{print $2}')
+            # The package root directory is used as the alias name
+            ALIAS_NAME=$(grep -oP 'node_modules/.+/' <<<"$JS_BIN" \
+                | awk -F '/' '{print $2}')
 
-        # The npm binary in the version installation path is aliased with the
-        # package name
-        alias "$ALIAS_NAME"="$JS_BIN"
-    done
+            # The npm binary in the version installation path is aliased with
+            # the package name
+            alias "$ALIAS_NAME"="$JS_BIN"
+        done
+    fi
 
     echo "Node version $VERSION activated"
 }
