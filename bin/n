@@ -508,8 +508,8 @@ link_global_packages() {
         # Creating a symbolic link for each global package. The links point
         # directly to the binaries in `node_modules` of the active version,
         # saving one level of indirection. However, the link
-        # `<node version>/bin` --> `<prefix>/bin` is still necessary for
-        # freshly installed global packages.
+        # `<prefix>/lib/node_modules` -> ``<node version>/lib/node_modules` is
+        # still necessary for global packages installed after version switches.
         #
         # find prints the root directory absolute path of every global package
         # jq prints a list of '<binary name> <binary path>' for every binary
