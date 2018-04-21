@@ -86,6 +86,7 @@ DEFAULT=0
 QUIET=true
 ACTIVATE=true
 ARCH=
+FORCE=false
 
 #
 # set_default <BIN_NAME>
@@ -192,6 +193,7 @@ display_help() {
     -a, --arch          Override system architecture
     -i, --interactive   Displays installed versions interactively
     -p, --platform      Displays installed versions with the platform
+    -f, --force         Forces the activation
 
   Aliases:
 
@@ -549,7 +551,7 @@ link_global_packages() {
 activate() {
   local version=$1
   check_current_version
-  if test "$version" != "$active"; then
+  if [ $FORCE -o "$version" != "$active" ]; then
     local dir=$BASE_VERSIONS_DIR/$version
     for subdir in bin-node include share; do
       target_subdir=${subdir%%-*}
@@ -617,9 +619,9 @@ install() {
 
   local dir=${VERSIONS_DIR[$DEFAULT]}/$version
 
-  if test -d $dir; then
+  if [ -d $dir ]; then
     if [[ ! -e $dir/n.lock ]] ; then
-      if $ACTIVATE ; then
+      if [ $FORCE -o $ACTIVATE ]; then
         activate ${BINS[$DEFAULT]}/$version
       fi
       exit
@@ -652,7 +654,7 @@ install() {
 
   disable_pax_mprotect bin-node/node
 
-  if $ACTIVATE ; then
+  if [ $FORCE -o $ACTIVATE ]; then
     activate ${BINS[$DEFAULT]}/$version
     log installed $(node --version)
   fi
@@ -847,6 +849,7 @@ else
       -d|--download) ACTIVATE=false ;;
       -i|--interactive) display_versions_interactive; exit ;;
       -p|--platform) display_versions_platform; exit ;;
+      -f|--force) FORCE=true ;;
       --latest) display_latest_version; exit ;;
       --stable) display_latest_stable_version; exit ;;
       --lts) display_latest_lts_version; exit ;;
