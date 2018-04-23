@@ -524,13 +524,13 @@ link_global_packages() {
             | xargs -i jq -r '
                 .bin |
                 to_entries |
-                map(.key + " " + (
-                    .value
-                    | sub("^\\."; "{}")
-                )) |
+                map(.key + " {}/" + .value) |
                 .[]' "{}/package.json" \
             | while read js_name js_bin; do
-                ln -fs $js_bin $N_PREFIX/bin/$js_name;
+
+                # readlink normalizes relative binaries path in package.json
+                readlink -f $js_bin \
+                    | xargs -i ln -fs '{}' $N_PREFIX/bin/$js_name;
               done
 
         # find prints a line consisting of '<link_path> <link_target>' for
