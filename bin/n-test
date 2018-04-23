@@ -678,8 +678,15 @@ remove_versions() {
   check_current_version
   while test $# -ne 0; do
     local version=${1#v}
+
     [ "${BINS[$DEFAULT]}/$version" == "$active" ] && abort "cannot remove currently active version ($active)"
-    rm -rf ${VERSIONS_DIR[$DEFAULT]}/$version
+
+    if [ -d ${VERSIONS_DIR[$DEFAULT]}/$version ]; then
+        rm -rf ${VERSIONS_DIR[$DEFAULT]}/$version
+        log 'removed' "v$version"
+    else
+        log 'warning' "v$version not installed"
+    fi
     shift
   done
 }
