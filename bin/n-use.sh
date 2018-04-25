@@ -43,16 +43,16 @@ n-activate() {
     # version are scanned for package binaries, that are then aliased
     if which jq &> /dev/null; then
         while read JS_NAME JS_BIN; do
+
+            # readlink normalizes relative binaries path in package.json
+            JS_BIN=$(readlink -f "$JS_BIN")
             alias "$JS_NAME"="$JS_BIN"
         done < <(find "$N_VERSION_PATH/lib/node_modules" -maxdepth 1 \
                         -mindepth 1 -type d \
                 | xargs -i jq -r '
                     .bin |
                     to_entries |
-                    map(.key + " " + (
-                        .value
-                        | sub("^\\."; "{}")
-                    )) |
+                    map(.key + " {}/" + .value) |
                     .[]' "{}/package.json")
 
     # For every binary that links to a node_modules path, the parent of
