@@ -21,7 +21,7 @@ log() {
 #
 
 abort() {
-  printf "\n  \033[31mError: $@\033[0m\n\n" && exit 1
+  printf "\n  \033[31mError: $*\033[0m\n\n" && exit 1
 }
 
 #
@@ -30,21 +30,21 @@ abort() {
 
 BINS=("node"
       "io")
-MIRROR=(${NODE_MIRROR-https://nodejs.org/dist/}
-        ${IO_MIRROR-https://iojs.org/dist/})
+MIRROR=("${NODE_MIRROR-https://nodejs.org/dist/}"
+        "${IO_MIRROR-https://iojs.org/dist/}")
 BIN_NAME=("node"
           "iojs")
-VERSIONS_DIR=($BASE_VERSIONS_DIR/node
-              $BASE_VERSIONS_DIR/io)
+VERSIONS_DIR=("$BASE_VERSIONS_DIR/node"
+              "$BASE_VERSIONS_DIR/io")
 
 if [ -n "$PROJECT_NAME" ]; then
-  BINS+=($PROJECT_NAME)
-  BIN_NAME+=($PROJECT_NAME)
+  BINS+=("$PROJECT_NAME")
+  BIN_NAME+=("$PROJECT_NAME")
   if [ -z "$PROJECT_URL" ]; then
     abort "Must specify PROJECT_URL when supplying PROJECT_NAME"
   fi
-  MIRROR+=(${PROJECT_URL})
-  VERSIONS_DIR+=($BASE_VERSIONS_DIR/$PROJECT_NAME)
+  MIRROR+=("$PROJECT_URL")
+  VERSIONS_DIR+=("$BASE_VERSIONS_DIR/$PROJECT_NAME")
 fi
 
 #
@@ -72,9 +72,9 @@ fi
 GET=
 
 # wget support
-command -v wget > /dev/null && GET="wget ${WGET_PARAMS[@]}"
+command -v wget > /dev/null && GET="wget ${WGET_PARAMS[*]}"
 
-command -v curl > /dev/null && GET="curl ${CURL_PARAMS[@]}" && QUIET=false
+command -v curl > /dev/null && GET="curl ${CURL_PARAMS[*]}" && QUIET=false
 
 test -z "$GET" && abort "curl or wget required"
 
@@ -101,7 +101,7 @@ set_default() {
   done
 }
 
-for dir in ${VERSIONS_DIR[@]}; do
+for dir in "${VERSIONS_DIR[@]}"; do
   test -d $dir || mkdir -p $dir
 done
 
@@ -258,15 +258,16 @@ display_n_version() {
 check_current_version() {
   command -v node &> /dev/null
   if test $? -eq 0; then
-    local current=$(node --version)
+    local current
+    current=$(node --version)
     if [ -n "$PROJECT_VERSION_CHECK" ]; then
       current=$(node -p "$PROJECT_VERSION_CHECK || process.exit(1)" || node --version)
     fi
     current=${current#v}
-    for bin in ${BINS[@]}; do
+    for bin in "${BINS[@]}"; do
       if diff &> /dev/null \
         $BASE_VERSIONS_DIR/$bin/$current/bin-node/node \
-        $(which node) ; then
+        "$(which node)" ; then
         active=$bin/$current
       fi
     done
@@ -362,22 +363,22 @@ display_versions_interactive() {
           case "$arrow" in
             $UP)
               clear
-              display_versions_with_selected $(prev_version_installed)
+              display_versions_with_selected "$(prev_version_installed)"
               ;;
             $DOWN)
               clear
-              display_versions_with_selected $(next_version_installed)
+              display_versions_with_selected "$(next_version_installed)"
               ;;
           esac
         fi
         ;;
       "k")
         clear
-        display_versions_with_selected $(prev_version_installed)
+        display_versions_with_selected "$(prev_version_installed)"
         ;;
       "j")
         clear
-        display_versions_with_selected $(next_version_installed)
+        display_versions_with_selected "$(next_version_installed)"
         ;;
       "q")
         clear
@@ -439,7 +440,8 @@ is_oss_ok() {
 
 tarball_url() {
   local version=$1
-  local uname="$(uname -a)"
+  local uname
+  uname="$(uname -a)"
   local arch=x86
   local os=
 
@@ -456,10 +458,12 @@ tarball_url() {
     *armv7l*) arch=armv7l ;;
   esac
 
-  if [ ${arch} = "armv6l" -a ${BIN_NAME[$DEFAULT]} = node ]; then
+  if [ ${arch} = "armv6l" ] && [ ${BIN_NAME[$DEFAULT]} = node ]; then
     local semver=${version//./ }
-    local major=$(echo $semver | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//')
-    local minor=$(echo $semver | awk '{print $2}' | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//')
+    local major
+    local minor
+    major=$(echo $semver | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//')
+    minor=$(echo $semver | awk '{print $2}' | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//')
     [[ $major -eq "" && $minor -lt 12 ]] && arch=arm-pi
   fi
 
@@ -478,7 +482,8 @@ disable_pax_mprotect() {
   local binary=$1
 
   # try to disable mprotect via XATTR_PAX header
-  local PAXCTL=$(PATH="/sbin:/usr/sbin:$PATH" which paxctl-ng 2>&1)
+  local PAXCTL
+  PAXCTL=$(PATH="/sbin:/usr/sbin:$PATH" which paxctl-ng 2>&1)
   local PAXCTL_ERROR=1
   if [ -x "$PAXCTL" ]; then
     $PAXCTL -l && $PAXCTL -m "$binary" >/dev/null 2>&1
@@ -521,11 +526,11 @@ link_global_packages() {
         #       installation directory of the active version of node
         # The while loop creates the links from <binary name> to <binary path>
         find $global_packages -maxdepth 1 -mindepth 1 -type d \
-            | xargs -i jq -r '
+            -exec jq -r '
                 .bin |
                 to_entries |
                 map(.key + " {}/" + .value) |
-                .[]' "{}/package.json" \
+                .[]' "{}/package.json" \; \
             | while read js_name js_bin; do
 
                 # readlink normalizes relative binaries path in package.json
@@ -551,7 +556,7 @@ link_global_packages() {
 activate() {
   local version=$1
   check_current_version
-  if [ $FORCE -o "$version" != "$active" ]; then
+  if [ $FORCE ] || [ "$version" != "$active" ]; then
     local dir=$BASE_VERSIONS_DIR/$version
     for subdir in bin-node include share; do
       target_subdir=${subdir%%-*}
@@ -575,7 +580,7 @@ activate() {
 #
 
 install_latest() {
-  install $(display_latest_version)
+  install "$(display_latest_version)"
 }
 
 #
@@ -584,7 +589,7 @@ install_latest() {
 
 install_stable() {
   check_io_supported "stable"
-  install $(display_latest_stable_version)
+  install "$(display_latest_stable_version)"
 }
 
 #
@@ -593,7 +598,7 @@ install_stable() {
 
 install_lts() {
   check_io_supported "lts"
-  install $(display_latest_lts_version)
+  install "$(display_latest_lts_version)"
 }
 
 #
@@ -603,7 +608,8 @@ install_lts() {
 install() {
   local version=${1#v}
 
-  local dots=$(echo $version | sed 's/[^.]*//g')
+  local dots
+  dots=$(echo $version | sed 's/[^.]*//g')
   if test ${#dots} -lt 2; then
     version=$($GET 2> /dev/null ${MIRROR[DEFAULT]} \
       | egrep "</a>" \
@@ -621,7 +627,7 @@ install() {
 
   if [ -d $dir ]; then
     if [[ ! -e $dir/n.lock ]] ; then
-      if [ $FORCE -o $ACTIVATE ]; then
+      if [ $FORCE ] || [ $ACTIVATE ]; then
         activate ${BINS[$DEFAULT]}/$version
       fi
       exit
@@ -631,7 +637,8 @@ install() {
   echo
   log install ${BINS[$DEFAULT]}-v$version
 
-  local url=$(tarball_url $version)
+  local url
+  url=$(tarball_url $version)
   is_ok $url || is_oss_ok $url || abort "invalid version $version"
 
   log mkdir $dir
@@ -642,6 +649,7 @@ install() {
     touch $dir/n.lock
   fi
 
+  # shellcheck disable=SC2164
   cd $dir
 
   log fetch $url
@@ -654,9 +662,9 @@ install() {
 
   disable_pax_mprotect bin-node/node
 
-  if [ $FORCE -o $ACTIVATE ]; then
+  if [ $FORCE ] || [ $ACTIVATE ]; then
     activate ${BINS[$DEFAULT]}/$version
-    log installed $(node --version)
+    log installed "$(node --version)"
   fi
   echo
 }
@@ -682,7 +690,7 @@ remove_versions() {
     [ "${BINS[$DEFAULT]}/$version" == "$active" ] && abort "cannot remove currently active version ($active)"
 
     if [ -d ${VERSIONS_DIR[$DEFAULT]}/$version ]; then
-        rm -rf ${VERSIONS_DIR[$DEFAULT]}/$version
+        rm -rf ${VERSIONS_DIR[$DEFAULT]:?}/$version
         log 'removed' "v$version"
     else
         log 'warning' "v$version not installed"
@@ -701,7 +709,7 @@ prune_versions() {
     if [ $version != $active ]
     then
       echo $version
-      rm -rf ${BASE_VERSIONS_DIR[$DEFAULT]}/$version
+      rm -rf ${BASE_VERSIONS_DIR[$DEFAULT]:?}/$version
       shift
     fi
   done
@@ -799,7 +807,8 @@ display_latest_stable_version() {
 
 display_latest_lts_version() {
   check_io_supported "--lts"
-  local folder_name=$($GET 2> /dev/null ${MIRROR[$DEFAULT]} \
+  local folder_name
+  folder_name=$($GET 2> /dev/null ${MIRROR[$DEFAULT]} \
     | egrep "</a>" \
     | egrep -o 'latest-[a-z]{2,}' \
     | sort \
@@ -864,8 +873,8 @@ else
       project) DEFAULT=2 ;;
       -a|--arch) shift; set_arch $1;; # set arch and continue
       bin|which) display_bin_path_for_version $2; exit ;;
-      as|exec) shift; execute_with_version $@; exit ;;
-      rm|-) shift; remove_versions $@; exit ;;
+      as|exec) shift; execute_with_version "$@"; exit ;;
+      rm|-) shift; remove_versions "$@"; exit ;;
       prune) prune_versions; exit ;;
       latest) install_latest; exit ;;
       stable) install_stable; exit ;;
