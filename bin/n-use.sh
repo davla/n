@@ -25,8 +25,10 @@ n-activate() {
     local VERSION="$1"
 
     # Installation paths for n and the node version
-    local N_PREFIX=$(dirname "$N_BIN" | xargs -i readlink -f '{}/..')
-    local N_VERSION_PATH=$(find "$N_PREFIX/n" -path "*$VERSION")
+    local N_PREFIX
+    N_PREFIX=$(dirname "$N_BIN" | xargs -i readlink -f '{}/..')
+    local N_VERSION_PATH
+    N_VERSION_PATH=$(find "$N_PREFIX/n" -path "*$VERSION")
 
     # Node version not installed. Would need root privileges to install it.
     if [[ -z "$N_VERSION_PATH" ]]; then
@@ -46,14 +48,15 @@ n-activate() {
 
             # readlink normalizes relative binaries path in package.json
             JS_BIN=$(readlink -f "$JS_BIN")
+            # shellcheck disable=SC2139
             alias "$JS_NAME"="$JS_BIN"
         done < <(find "$N_VERSION_PATH/lib/node_modules" -maxdepth 1 \
                         -mindepth 1 -type d \
-                | xargs -i jq -r '
+                -exec jq -r '
                     .bin |
                     to_entries |
                     map(.key + " {}/" + .value) |
-                    .[]' "{}/package.json")
+                    .[]' "{}/package.json" \;)
 
     # For every binary that links to a node_modules path, the parent of
     # lib/node_modules is replaced by the installation path of the node
@@ -62,12 +65,18 @@ n-activate() {
         for JS_BIN in $(readlink "$N_PREFIX/bin/"* | grep 'node_modules' \
                 | sed "s|\\.\\.|$N_VERSION_PATH|g"); do
 
-            # The package root directory is used as the alias name
-            ALIAS_NAME=$(grep -oP 'node_modules/.+/' <<<"$JS_BIN" \
-                | awk -F '/' '{print $2}')
+            # Fetching the key of the binary from the package's package.json
+            # The first line gets the path to the root of the package
+            # The second line filters the key-value pair containing the binary
+            #       (mind the double quotes in the grep pattern)
+            # The fourth line selects the key from the key-value pair
+            ALIAS_NAME=$(grep -oP '.+/node_modules/.+?/' <<<"$JS_BIN" \
+                | xargs -i grep ${JS_BIN##*/}'"' '{}/package.json' \
+                | awk -F ':' '{print $1}' | xargs)
 
             # The npm binary in the version installation path is aliased with
             # the package name
+            # shellcheck disable=SC2139
             alias "$ALIAS_NAME"="$JS_BIN"
         done
     fi

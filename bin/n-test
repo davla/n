@@ -561,7 +561,7 @@ activate() {
     for subdir in bin-node include share; do
       target_subdir=${subdir%%-*}
       find "$dir/$subdir" -mindepth 1 -maxdepth 1 \
-          -exec cp -fR "{}" "$N_PREFIX/$target_subdir" \;
+          -exec cp -fR '{}' "$N_PREFIX/$target_subdir" \;
     done
     disable_pax_mprotect "$N_PREFIX/bin-node/node"
 
