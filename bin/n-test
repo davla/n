@@ -4,7 +4,7 @@
 # Setup.
 #
 
-VERSION="2.1.8"
+VERSION="2.1.11"
 N_PREFIX=${N_PREFIX-/usr/local}
 BASE_VERSIONS_DIR=$N_PREFIX/n-test/versions
 
@@ -290,7 +290,9 @@ versions_paths() {
   find $BASE_VERSIONS_DIR -maxdepth 2 -type d \
     | sed 's|'$BASE_VERSIONS_DIR'/||g' \
     | egrep "/[0-9]+\.[0-9]+\.[0-9]+$" \
-    | sort -k 1,1 -k 2,2n -k 3,3n -t .
+    | sed 's|/|.|' \
+    | sort -k 1,1 -k 2,2n -k 3,3n -k 4,4n -t . \
+    | sed 's|\.|/|'
 }
 
 #
@@ -561,7 +563,7 @@ activate() {
     for subdir in bin-node include share; do
       target_subdir=${subdir%%-*}
       find "$dir/$subdir" -mindepth 1 -maxdepth 1 \
-          -exec cp -fR '{}' "$N_PREFIX/$target_subdir" \;
+          -exec cp -fR "{}" "$N_PREFIX/$target_subdir" \;
     done
     disable_pax_mprotect "$N_PREFIX/bin-node/node"
 
