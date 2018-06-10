@@ -39,6 +39,11 @@ n-activate() {
     # Adding node version binaries path with high priority
     PATH="$N_VERSION_PATH/bin-node:$PATH"
 
+    # Unaliasing current node aliases
+    local NODE_ALIASES
+    NODE_ALIASES="$(alias | grep node_modules | grep -oP '\S+\w+(?=\=)')"
+    [[ -n "$NODE_ALIASES" ]] && unalias $NODE_ALIASES
+
     # Aliasing global installed packages.
 
     # If jq is available, the package.json of global packages of the activated
@@ -58,26 +63,29 @@ n-activate() {
                     map(.key + " {}/" + .value) |
                     .[]' "{}/package.json" \;)
 
-    # For every binary that links to a node_modules path, the parent of
-    # lib/node_modules is replaced by the installation path of the node
-    # version
+    # Every binary linking to a node_modules path is aliased to the same target
+    # but in the new node version, if it exists. Otherwise, the alias is to an
+    # error message
     else
-        for JS_BIN in $(readlink "$N_PREFIX/bin/"* | grep 'node_modules' \
-                | sed "s|\\.\\.|$N_VERSION_PATH|g"); do
+        for JS_BIN in "$N_PREFIX/bin/"*; do
+            LINK_TARGET=$(readlink "$JS_BIN")
 
-            # Fetching the key of the binary from the package's package.json
-            # The first line gets the path to the root of the package
-            # The second line filters the key-value pair containing the binary
-            #       (mind the double quotes in the grep pattern)
-            # The fourth line selects the key from the key-value pair
-            ALIAS_NAME=$(grep -oP '.+/node_modules/.+?/' <<<"$JS_BIN" \
-                | xargs -i grep ${JS_BIN##*/}'"' '{}/package.json' \
-                | awk -F ':' '{print $1}' | xargs)
+            # Skipping non-node_modules links
+            grep 'node_modules' &> /dev/null <<<"$LINK_TARGET" || continue
 
-            # The npm binary in the version installation path is aliased with
-            # the package name
-            # shellcheck disable=SC2139
-            alias "$ALIAS_NAME"="$JS_BIN"
+            # Path to the target for the new node version: either replace
+            # the parent directory or the node version.
+            JS_PATH=$(sed -E "s|([[:digit:]]+\.?)+|$VERSION|g; \
+                s|\.\.|$N_VERSION_PATH|g" <<<"$LINK_TARGET")
+            ALIAS_NAME="$(basename "$JS_BIN")"
+
+            if [[ -f "$JS_PATH" ]]; then
+                # shellcheck disable=SC2139
+                alias "$ALIAS_NAME"="$JS_PATH"
+            else
+                # shellcheck disable=SC2139,SC2140
+                alias "$ALIAS_NAME"="echo $ALIAS_NAME is not installed for version $VERSION && false"
+            fi
         done
     fi
 
