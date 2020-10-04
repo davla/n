@@ -1,5 +1,7 @@
 # `n` – Interactively Manage Your Node.js Versions
 
+:skull::skull::skull: ***This repository is archived :sob: I'm not maintaining it anymore, as I switched to [asdf](https://asdf-vm.com)*** :skull::skull::skull:
+
 [![Join the chat at https://gitter.im/tj/n](https://img.shields.io/gitter/room/tj/n.svg?style=flat-square)](https://gitter.im/tj/n)
 [![npm](https://img.shields.io/npm/dt/n.svg?style=flat-square)](https://www.npmjs.com/package/n)
 [![npm](https://img.shields.io/npm/dm/n.svg?style=flat-square)](https://www.npmjs.com/package/n)
